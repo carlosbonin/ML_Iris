@@ -1,0 +1,64 @@
+import pandas as pd
+from warnings import simplefilter
+import numpy as np
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import classification_report
+from sklearn.model_selection import train_test_split, GridSearchCV
+import matplotlib.pyplot as plt
+from pandas.plotting import scatter_matrix
+
+# Suppress FutureWarnings
+simplefilter(action='ignore', category=FutureWarning)
+
+# Read the iris.data dataset
+iris_data = pd.read_csv('Path_of_Original_file/iris.data', header=None)
+iris_data.columns = ['sepal_length', 'sepal_width', 'petal_length', 'petal_width', 'class']
+
+# Display dataset information
+print("Basic Statistics:", iris_data.describe())
+print("Missing Values:", iris_data.isnull().sum())
+print("Unique Classes:", iris_data['class'].unique())
+
+scatter_matrix(iris_data, alpha = 0.2, figsize=(10,10), diagonal = 'hist')
+plt.suptitle("Scatter Matrix of Iris Dataset")
+plt.show()
+
+# Split dataset into features and labels
+X_iris = iris_data.iloc[:, :-1].values  # Features
+y_iris = iris_data.iloc[:, -1].values  # Labels
+
+# Split the data into training, validation, and test sets
+X_iris_train_val, X_iris_test, y_iris_train_val, y_iris_test = train_test_split(X_iris, y_iris, test_size=0.3, random_state=42)
+X_iris_train, X_iris_val, y_iris_train, y_iris_val = train_test_split(X_iris_train_val, y_iris_train_val, test_size=0.28, random_state=42)
+
+# Print shapes to confirm the split
+print(X_iris_train.shape, X_iris_val.shape, X_iris_test.shape)
+print(y_iris_train.shape, y_iris_val.shape, y_iris_test.shape)
+
+# Initialize k-NN classifier
+knn_iris = KNeighborsClassifier(n_neighbors=3)
+
+# Fit the model to the training data
+knn_iris.fit(X_iris_train, y_iris_train)
+
+# Evaluate on the validation data
+y_iris_val_pred = knn_iris.predict(X_iris_val)
+print("## Validation Performance ##")
+print(classification_report(y_iris_val, y_iris_val_pred))
+
+# Hyperparameter tuning
+param_grid_iris = {'n_neighbors': [1, 3, 5, 7, 9, 11],
+                   'metric': ['euclidean', 'manhattan', 'minkowski'],
+                   'weights': ['uniform', 'distance']}
+grid_search_iris = GridSearchCV(KNeighborsClassifier(), param_grid_iris, cv=5)
+grid_search_iris.fit(X_iris_train, y_iris_train)
+print("Best hyperparameters:", grid_search_iris.best_params_)
+
+# Fit the model with the best hyperparameters
+best_knn_iris = grid_search_iris.best_estimator_
+best_knn_iris.fit(X_iris_train, y_iris_train)
+
+# Evaluate on the test data
+y_iris_pred = best_knn_iris.predict(X_iris_test)
+print("## Test Performance ##")
+print(classification_report(y_iris_test, y_iris_pred))
